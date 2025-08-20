@@ -1,0 +1,92 @@
+{
+  "tipoUsuario": "EMPREENDEDOR",
+  "nome": "Carlos Henrique",
+  "email": "carlos.empreendedor@example.com",
+  "telefone": "(11) 91234-5678",
+  "senha": "senhaSegura123",
+  "data_nascimento": "1990-05-15",
+  "cep": "01001-000",
+  "estado": "SP",
+  "rua": "Rua das Startups",
+  "numero": "123",
+  "municipio": "São Paulo",
+  "complemento": "Sala 45",
+  "instituicao_ensino": "Universidade de Tecnologia e Inovação",
+  "curso": "Engenharia de Software",
+  "nivel_ensino": "Superior Completo",
+  "ano_expedicao": "2012-01-01",
+  "ano_conclusao": "2016-12-31",
+  "ocupacao": null,
+  "empresa": null,
+  "tempo_atuacao": null,
+  "renda_mensal": null,
+  "valor_investimento": null,
+  "interesses": null
+}
+
+
+{
+  "tipoUsuario": "INVESTIDOR",
+  "nome": "Mariana Alves",
+  "email": "mariana.investidora@example.com",
+  "telefone": "(21) 99876-5432",
+  "senha": "invest2025",
+  "data_nascimento": "1985-08-20",
+  "cep": "20010-000",
+  "estado": "RJ",
+  "rua": "Avenida dos Negócios",
+  "numero": "456",
+  "municipio": "Rio de Janeiro",
+  "complemento": "Cobertura 301",
+  "instituicao_ensino": null,
+  "curso": null,
+  "nivel_ensino": null,
+  "ano_expedicao": null,
+  "ano_conclusao": null,
+  "ocupacao": "Analista de Investimentos",
+  "empresa": "XP Investimentos",
+  "tempo_atuacao": 120,
+  "renda_mensal": 15000.00,
+  "valor_investimento": 500000.00,
+  "interesses": "Startups, Imóveis, Renda Fixa"
+}
+
+BD:
+DROP DATABASE cinveste;
+CREATE DATABASE cinveste;
+USE cinveste;
+CREATE TABLE usuario (
+    id_usuario INT AUTO_INCREMENT PRIMARY KEY,
+    nome VARCHAR(100) NOT NULL,
+    email VARCHAR(100) NOT NULL UNIQUE,
+    telefone VARCHAR(20),
+    data_nascimento DATE,
+    cep VARCHAR(10),
+    estado VARCHAR(2),
+    municipio VARCHAR(100),
+    rua VARCHAR(150),
+    numero VARCHAR(10),
+    complemento VARCHAR(100),
+    senha VARCHAR(255)
+);
+
+CREATE TABLE empreendedor (
+    id_empreendedor INT PRIMARY KEY,
+    instituicao_ensino VARCHAR(150) NOT NULL,
+    curso VARCHAR(100) NOT NULL,
+    nivel_ensino VARCHAR(50) NOT NULL,
+    ano_expedicao DATE NOT NULL,
+    ano_conclusao DATE NOT NULL,
+    CONSTRAINT fk_empreendedor_usuario FOREIGN KEY (id_empreendedor) REFERENCES usuario(id_usuario)
+);
+
+CREATE TABLE investidor (
+    id_investidor INT PRIMARY KEY,
+    ocupacao VARCHAR(100) NOT NULL,
+    empresa VARCHAR(150) NOT NULL,
+    tempo_atuacao INT NOT NULL,
+    renda_mensal DECIMAL(12,2),
+    valor_investimentos DECIMAL(12,2),
+    interesses TEXT,
+    CONSTRAINT fk_investidor_usuario FOREIGN KEY (id_investidor) REFERENCES usuario(id_usuario)
+);
