@@ -18,6 +18,7 @@ import br.cinveste.model.InvestorEntity;
 import br.cinveste.record.AuthenticationDto;
 import br.cinveste.record.RegisterDto;
 import br.cinveste.repository.UserRepository;
+import br.cinveste.response.UserResponseDto;
 import br.cinveste.repository.EntrepreneurRepository;
 import br.cinveste.repository.InvestorRepository;
 import br.cinveste.webconfig.TokenService;
@@ -47,8 +48,15 @@ public class UserService {
         return userRepository.save(user);
     }
 
-    public List<UserEntity> listUsers() {
-        return userRepository.findAll();
+    public List<UserResponseDto> listUsers() {
+        return userRepository.findAll().stream()
+        .map(user -> new UserResponseDto(
+            user.getId(),
+            user.getNome(),
+            user.getEmail(),
+            user.getTipoUsuario().name()
+        ))
+        .toList();
     }
 
     public Optional<UserEntity> getUserType(UserType tipoUsuario) {

@@ -1,16 +1,17 @@
 package br.cinveste.service;
 
-import java.util.List;
-import java.util.Optional;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import java.util.List;
 
+import br.cinveste.record.TeamDto;
 import br.cinveste.model.TeamEntity;
 import br.cinveste.model.UserEntity;
-import br.cinveste.record.TeamDto;
-import br.cinveste.repository.UserRepository;
+import br.cinveste.enums.UserType;
 import br.cinveste.repository.TeamRepository;
+import br.cinveste.repository.UserRepository;
+import br.cinveste.response.TeamResponseDto;
+import br.cinveste.response.UserResponseDto;
 
 @Service
 public class TeamService {
@@ -21,28 +22,29 @@ public class TeamService {
     @Autowired
     private TeamRepository teamRepository;
 
-    public TeamEntity createTeam(TeamDto teamDto) {
-        UserEntity user = userRepository.findById(teamDto.user_id())
-            .orElseThrow(() -> new RuntimeException("User not found"));
+    public TeamResponseDto createTeam(TeamDto teamDto) {
+    UserEntity user = userRepository.findById(teamDto.user_id())
+        .orElseThrow(() -> new RuntimeException("User not found"));
 
-        TeamEntity team = new TeamEntity();
-        team.setUser(user);
-        team.setLogoUrl(teamDto.logoUrl());
-        team.setNome(teamDto.nome());
-        team.setDescricao(teamDto.descricao());
-
-        return teamRepository.save(team);
+    if (!user.getTipoUsuario().equals(UserType.Empreendedor)) {
+        throw new RuntimeException("Apenas empreendedores podem criar equipes.");
     }
 
-    public List<TeamEntity> listTeams() {
-        return teamRepository.findAll();
-    }
+    TeamEntity team = new TeamEntity();
+    team.setUser(user);
+    team.setLogoUrl(teamDto.logoUrl());
+    team.setNome(teamDto.nome());
+    team.setDescricao(teamDto.descricao());
 
-    public Optional<TeamEntity> getTeamById(Integer id) {
-        return teamRepository.findById(id);
-    }
+    TeamEntity saved = teamRepository.save(team);
 
-    public void deleteTeam(Integer id) {
-        teamRepository.deleteById(id);
-    }
+    return new TeamResponseDto(
+        saved.getIdEquipe(),
+        saved.getNome(),
+        saved.getDescricao(),
+        saved.getLogoUrl(),
+        new UserResponseDto(user.getId(), user.getNome(), user.getEmail(), user.getTipoUsuario().name())
+    );
+}
+
 }

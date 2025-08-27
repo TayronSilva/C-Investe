@@ -5,4 +5,4 @@ public record TeamDto(
     String logoUrl,
     String nome,
     String descricao
-) {}
+    ) {}

@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RestController;
 import br.cinveste.enums.UserType;
 import br.cinveste.model.UserEntity;
 import br.cinveste.record.RegisterDto;
+import br.cinveste.response.UserResponseDto;
 
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -32,9 +33,10 @@ public class UserController {
     }
 
     @GetMapping("/list")
-    public List<UserEntity> listUsers() {
+    public List<UserResponseDto> listUsers() {
         return userService.listUsers();
     }
+
 
     @GetMapping("/{id}")
     public Optional<UserEntity> getUserById(@PathVariable Integer id) {

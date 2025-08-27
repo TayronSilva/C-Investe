@@ -17,8 +17,8 @@ public class TeamEntity {
     @Column(name = "id_equipe")
     private Integer idEquipe;
 
-    @OneToOne
-    @JoinColumn(name = "id_user", nullable = false, unique = true)
+    @ManyToOne
+    @JoinColumn(name = "id_user", nullable = false)
     private UserEntity user;
 
     @Column(length = 100)
