@@ -22,40 +22,31 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        return http
-                // Desabilitando CSRF, comum para APIs REST
-                .csrf(csrf -> csrf.disable())
+        http
+            .csrf(csrf -> csrf.disable())
+            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            .authorizeHttpRequests(auth -> auth
+                // rota raiz liberada
+                .requestMatchers("/").permitAll()
+                // login e cadastro liberados
+                .requestMatchers("/auth/**", "/users/register").permitAll()
+                // criação de equipe e projeto -> apenas autenticados (regra de empreendedor no Service)
+                .requestMatchers("/teams/register", "/projects/register").authenticated()
+                // demais endpoints -> autenticados
+                .anyRequest().authenticated()
+            )
+            // adiciona o filtro de autenticação antes do UsernamePasswordAuthenticationFilter
+            .addFilterBefore(securityFilter, UsernamePasswordAuthenticationFilter.class);
 
-                // Configuração para não criar sessão - stateless
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-
-                // Controle de acesso das URLs
-                .authorizeHttpRequests(authz -> authz
-                        // Permite acesso sem autenticação aos endpoints públicos
-                        .requestMatchers(
-                            "/user/**",
-                            "/",          // se precisar liberar a raiz
-                            "/auth/**",       // se a rota /auth usada para info
-                            "/team/**"
-                            ).permitAll()
-
-                        // Qualquer outra requisição exige autenticação
-                        .anyRequest().authenticated())
-
-                // Registra o seu filtro de segurança: deve ser antes do filtro padrão de autenticação
-                .addFilterBefore(securityFilter, UsernamePasswordAuthenticationFilter.class)
-
-                .build();
+        return http.build();
     }
 
-    // Bean para gerenciar autenticação via AuthenticationManager (necessário para login)
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration authenticationConfiguration)
             throws Exception {
         return authenticationConfiguration.getAuthenticationManager();
     }
 
-    // Bean para codificador de senha bcrypt
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();

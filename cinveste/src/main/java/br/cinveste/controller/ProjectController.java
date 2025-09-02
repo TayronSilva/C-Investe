@@ -1,9 +1,13 @@
 package br.cinveste.controller;
 
+import br.cinveste.model.UserEntity;
 import br.cinveste.record.ProjectDto;
 import br.cinveste.response.ProjectResponseDto;
 import br.cinveste.service.ProjectService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -15,27 +19,24 @@ public class ProjectController {
     @Autowired
     private ProjectService projectService;
 
-    // Criar projeto
-    @PostMapping("/create")
-    public ProjectResponseDto createProject(@RequestBody ProjectDto projectDto) {
-        return projectService.createProject(projectDto);
+    // 🔒 Apenas empreendedores logados podem criar projetos
+    @PostMapping("/register")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ProjectResponseDto> createProject(@RequestBody ProjectDto dto,
+                                                            @AuthenticationPrincipal UserEntity currentUser) {
+        return ResponseEntity.ok(projectService.createProject(dto, currentUser));
     }
 
-    // Listar todos projetos
-    @GetMapping("/list")
-    public List<ProjectResponseDto> listProjects() {
-        return projectService.listProjects();
+    // 🔓 Lista todos os projetos
+    @GetMapping
+    public ResponseEntity<List<ProjectResponseDto>> listProjects() {
+        return ResponseEntity.ok(projectService.listProjects());
     }
 
-    // Buscar projeto por ID
-    @GetMapping("/{id}")
-    public ProjectResponseDto getProjectById(@PathVariable Integer id) {
-        return projectService.getProjectById(id);
-    }
-
-    // Deletar projeto
-    @DeleteMapping("/{id}")
-    public void deleteProject(@PathVariable Integer id) {
-        projectService.deleteProject(id);
+    // 🔒 Lista projetos do usuário logado
+    @GetMapping("/me")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<List<ProjectResponseDto>> listMyProjects(@AuthenticationPrincipal UserEntity currentUser) {
+        return ResponseEntity.ok(projectService.listProjectsByUser(currentUser));
     }
 }

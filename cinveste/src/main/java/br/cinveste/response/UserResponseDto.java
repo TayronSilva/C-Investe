@@ -6,4 +6,3 @@ public record UserResponseDto(
     String email,
     String tipoUsuario
 ) {}
-

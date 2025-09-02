@@ -13,5 +13,5 @@ public record ProjectResponseDto(
     Double paybackDescontado,
     String periodo,
     String mercadoAlvo,
-    String teamName
+    String equipeNome
 ) {}

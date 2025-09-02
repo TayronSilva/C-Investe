@@ -1,13 +1,16 @@
 package br.cinveste.service;
 
+import org.springframework.stereotype.Service;
+import org.springframework.beans.factory.annotation.Autowired;
+
 import br.cinveste.record.ProjectDto;
 import br.cinveste.model.ProjectEntity;
 import br.cinveste.model.TeamEntity;
+import br.cinveste.model.UserEntity;
+import br.cinveste.enums.UserType;
 import br.cinveste.repository.ProjectRepository;
 import br.cinveste.repository.TeamRepository;
 import br.cinveste.response.ProjectResponseDto;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
 
 import java.util.List;
 
@@ -20,10 +23,13 @@ public class ProjectService {
     @Autowired
     private TeamRepository teamRepository;
 
-    // Criar projeto
-    public ProjectResponseDto createProject(ProjectDto projectDto) {
-        TeamEntity team = teamRepository.findById(projectDto.idProjeto())
-                .orElseThrow(() -> new RuntimeException("Team not found"));
+    public ProjectResponseDto createProject(ProjectDto projectDto, UserEntity currentUser) {
+        if (currentUser.getTipoUsuario() != UserType.Empreendedor) {
+            throw new RuntimeException("Apenas empreendedores podem criar projetos.");
+        }
+
+        TeamEntity team = teamRepository.findByUser(currentUser)
+                .orElseThrow(() -> new RuntimeException("Usuário não possui equipe"));
 
         ProjectEntity project = new ProjectEntity();
         project.setNome(projectDto.nome());
@@ -42,70 +48,60 @@ public class ProjectService {
         ProjectEntity saved = projectRepository.save(project);
 
         return new ProjectResponseDto(
-                saved.getIdProjeto(),
-                saved.getNome(),
-                saved.getArea(),
-                saved.getDescricao(),
-                saved.getOrientador(),
-                saved.getVpl(),
-                saved.getRoi(),
-                saved.getTir(),
-                saved.getPayback(),
-                saved.getPaybackDescontado(),
-                saved.getPeriodo(),
-                saved.getMercadoAlvo(),
-                team.getNome()
+            saved.getIdProjeto(),
+            saved.getNome(),
+            saved.getArea(),
+            saved.getDescricao(),
+            saved.getOrientador(),
+            saved.getVpl(),
+            saved.getRoi(),
+            saved.getTir(),
+            saved.getPayback(),
+            saved.getPaybackDescontado(),
+            saved.getPeriodo(),
+            saved.getMercadoAlvo(),
+            team.getNome()
         );
     }
 
-    // Listar todos os projetos
     public List<ProjectResponseDto> listProjects() {
         return projectRepository.findAll().stream()
-                .map(project -> new ProjectResponseDto(
-                        project.getIdProjeto(),
-                        project.getNome(),
-                        project.getArea(),
-                        project.getDescricao(),
-                        project.getOrientador(),
-                        project.getVpl(),
-                        project.getRoi(),
-                        project.getTir(),
-                        project.getPayback(),
-                        project.getPaybackDescontado(),
-                        project.getPeriodo(),
-                        project.getMercadoAlvo(),
-                        project.getTeam().getNome()
-                ))
-                .toList();
+            .map(p -> new ProjectResponseDto(
+                p.getIdProjeto(),
+                p.getNome(),
+                p.getArea(),
+                p.getDescricao(),
+                p.getOrientador(),
+                p.getVpl(),
+                p.getRoi(),
+                p.getTir(),
+                p.getPayback(),
+                p.getPaybackDescontado(),
+                p.getPeriodo(),
+                p.getMercadoAlvo(),
+                p.getTeam().getNome()
+            ))
+            .toList();
     }
 
-    // Buscar projeto por ID
-    public ProjectResponseDto getProjectById(Integer id) {
-        ProjectEntity project = projectRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Project not found"));
-
-        return new ProjectResponseDto(
-                project.getIdProjeto(),
-                project.getNome(),
-                project.getArea(),
-                project.getDescricao(),
-                project.getOrientador(),
-                project.getVpl(),
-                project.getRoi(),
-                project.getTir(),
-                project.getPayback(),
-                project.getPaybackDescontado(),
-                project.getPeriodo(),
-                project.getMercadoAlvo(),
-                project.getTeam().getNome()
-        );
-    }
-
-    // Deletar projeto
-    public void deleteProject(Integer id) {
-        if (!projectRepository.existsById(id)) {
-            throw new RuntimeException("Project not found");
-        }
-        projectRepository.deleteById(id);
+    public List<ProjectResponseDto> listProjectsByUser(UserEntity user) {
+        return projectRepository.findAll().stream()
+            .filter(p -> p.getTeam().getUser().getId().equals(user.getId()))
+            .map(p -> new ProjectResponseDto(
+                p.getIdProjeto(),
+                p.getNome(),
+                p.getArea(),
+                p.getDescricao(),
+                p.getOrientador(),
+                p.getVpl(),
+                p.getRoi(),
+                p.getTir(),
+                p.getPayback(),
+                p.getPaybackDescontado(),
+                p.getPeriodo(),
+                p.getMercadoAlvo(),
+                p.getTeam().getNome()
+            ))
+            .toList();
     }
 }

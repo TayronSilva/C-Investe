@@ -1,11 +1,9 @@
 package br.cinveste.response;
 
 public record TeamResponseDto(
-    Integer id,
+    Integer idEquipe,
     String nome,
     String descricao,
     String logoUrl,
-    UserResponseDto user
-) {
-
-}
+    String usuarioNome
+) {}

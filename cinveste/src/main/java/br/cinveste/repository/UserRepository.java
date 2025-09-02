@@ -1,15 +1,14 @@
 package br.cinveste.repository;
 
-import java.util.Optional;
-
-import org.springframework.data.jpa.repository.JpaRepository;
 import br.cinveste.model.UserEntity;
 import br.cinveste.enums.UserType;
+import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.util.Optional;
+import java.util.List;
 
 public interface UserRepository extends JpaRepository<UserEntity, Integer> {
-    UserEntity findByEmail(String email);
+    Optional<UserEntity> findByEmail(String email);
 
-    Optional<UserEntity> findByTipoUsuario(UserType tipoUsuario);
-
+    List<UserEntity> findByTipoUsuario(UserType tipoUsuario);
 }

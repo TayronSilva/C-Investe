@@ -1,675 +1,81 @@
 package br.cinveste.controller;
 
+import br.cinveste.model.UserEntity;
+import br.cinveste.response.UserResponseDto;
+import br.cinveste.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.*;
-
-import br.cinveste.record.AuthenticationDto;
-//import br.cinveste.record.EntrepreneurRegisterDto;
-//import br.cinveste.record.InvestorRegisterDto;
-import br.cinveste.service.UserService;
-
-@RestController
-@RequestMapping("/auth")
-public class AuthController {
-
-    @Autowired
-    private UserService userService;
-
-    @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody @Validated AuthenticationDto data) {
-        try {
-            var token = userService.login(data);
-            return ResponseEntity.ok(token);
-        } catch (Exception e) {
-            return ResponseEntity.status(401).body("Invalid credentials.");
-        }
-    }
-}
-package br.cinveste.controller;
-
-public class ProjectController {
-    
-}
-package br.cinveste.controller;
-
-import java.util.List;
-
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.web.bind.annotation.*;
-
-import br.cinveste.model.TeamEntity;
-import br.cinveste.model.UserEntity;
-import br.cinveste.record.TeamDto;
-import br.cinveste.service.TeamService;
-
-@RestController
-@RequestMapping("/team")
-public class TeamController {
-
-    private final TeamService teamService;
-
-    public TeamController(TeamService teamService) {
-        this.teamService = teamService;
-    }
-
-    @PostMapping("/create")
-    public TeamEntity createTeam(@RequestBody TeamDto teamDto) {
-    Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-    Object principal = authentication.getPrincipal();
-
-    String email;
-    if (principal instanceof org.springframework.security.core.userdetails.UserDetails) {
-        email = ((org.springframework.security.core.userdetails.UserDetails) principal).getUsername();
-    } else if (principal instanceof String) {
-        email = (String) principal;
-    } else {
-        throw new RuntimeException("Usuário não autenticado.");
-    }
-
-    // Busca o usuário completo pelo email no banco
-    UserEntity loggedUser = teamService.findUserByEmail(email);
-    if (loggedUser == null) {
-        throw new RuntimeException("Usuário logado não encontrado no banco.");
-    }
-
-    return teamService.createTeam(teamDto, loggedUser);
-    }
-
-    @GetMapping("/list")
-    public List<TeamEntity> listTeams() {
-        return teamService.listTeams();
-    }
-}
-package br.cinveste.controller;
-import br.cinveste.service.UserService;
-import java.util.List;
-import java.util.Optional;
-
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
-
-import br.cinveste.enums.UserType;
-import br.cinveste.model.UserEntity;
 import br.cinveste.record.RegisterDto;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.*;
 
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-
+import java.util.List;
 
 @RestController
-@RequestMapping("/user")
+@RequestMapping("/users")
 public class UserController {
 
     @Autowired
     private UserService userService;
-    
-    @PostMapping("/save")
-    public UserEntity salvarUsuario(@RequestBody RegisterDto dto) {
-        return userService.createUser(dto);
+
+    @PostMapping("/register")
+    public ResponseEntity<UserResponseDto> register(@RequestBody RegisterDto data) {
+        return ResponseEntity.ok(userService.register(data));
     }
 
-    @GetMapping("/list")
-    public List<UserEntity> listUsers() {
-        return userService.listUsers();
+    @GetMapping
+    public ResponseEntity<List<UserResponseDto>> listUsers() {
+        return ResponseEntity.ok(userService.listUsers());
     }
 
-    @GetMapping("/{id}")
-    public Optional<UserEntity> getUserById(@PathVariable Integer id) {
-        return userService.getUserById(id);
-    }
-
-    @DeleteMapping("/{id}")
-    public void deletarUsuario(@PathVariable Integer id) {
-        userService.deleteUser(id);
-    }
-    
-    @PutMapping("/{id}")
-    public UserEntity atualizarUsuario(@PathVariable Integer id, @RequestBody UserEntity userEntity) {
-        userEntity.setId(id);
-        return userService.saveUser(userEntity);
-    }
-
-    @GetMapping("/type/{userType}")
-    public Optional<UserEntity> getUserByType(@PathVariable("userType") String userType) {
-        UserType type = UserType.valueOf(userType);
-        return userService.getUserType(type);
-}
-
-
-}
-package br.cinveste.enums;
-
-public enum UserType {
-    Empreendedor,
-    Investidor
-}
-package br.cinveste.model;
-
-import jakarta.persistence.*;
-import java.time.LocalDate;
-import lombok.*;
-
-@Entity
-@Table(name = "empreendedor")
-@Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
-public class EntrepreneurEntity {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "id_empreendedor")
-    private Integer id_empreendedor;
-
-    @OneToOne
-    @JoinColumn(name = "id_user", nullable = false, unique = true)
-    private UserEntity user;
-
-
-    @Column(name = "instituicao_ensino", nullable = false)
-    private String instituicaoEnsino;
-
-    @Column(nullable = false)
-    private String curso;
-
-    @Column(name = "nivel_ensino", nullable = false)
-    private String nivelEnsino;
-
-    @Column(name = "ano_expedicao", nullable = false)
-    private LocalDate anoExpedicao;
-
-    @Column(name = "ano_conclusao", nullable = false)
-    private LocalDate anoConclusao;
-
-    // Construtor customizado sem o id (id vem do user)
-    public EntrepreneurEntity(UserEntity user, String instituicaoEnsino, String curso, String nivelEnsino,
-                              LocalDate anoExpedicao, LocalDate anoConclusao) {
-        this.user = user;
-        this.instituicaoEnsino = instituicaoEnsino;
-        this.curso = curso;
-        this.nivelEnsino = nivelEnsino;
-        this.anoExpedicao = anoExpedicao;
-        this.anoConclusao = anoConclusao;
+    @GetMapping("/me")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<UserResponseDto> getCurrentUser(@AuthenticationPrincipal UserEntity currentUser) {
+        return ResponseEntity.ok(userService.getCurrentUser(currentUser));
     }
 }
-package br.cinveste.model;
+package br.cinveste.controller;
 
-import jakarta.persistence.*;
-import lombok.*;
-import java.math.BigDecimal;
-
-@Entity
-@Table(name = "investidor")
-@Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
-public class InvestorEntity {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "id_investidor")
-    private Integer id_investidor;
-
-    @OneToOne
-    @JoinColumn(name = "id_user", nullable = false, unique = true)
-    private UserEntity user;
-
-    @Column(nullable = false, length = 100)
-    private String ocupacao;
-
-    @Column(nullable = false, length = 150)
-    private String empresa;
-
-    @Column(name = "tempo_atuacao", nullable = false)
-    private Integer tempoAtuacao;
-
-    @Column(name = "renda_mensal", precision = 12, scale = 2)
-    private BigDecimal rendaMensal;
-
-    @Column(name = "valor_investimentos", precision = 12, scale = 2)
-    private BigDecimal valorInvestimentos;
-
-    @Column(columnDefinition = "TEXT")
-    private String interesses;
-
-    // Construtor customizado sem o id (id vem do user)
-    public InvestorEntity(UserEntity user, String ocupacao, String empresa, Integer tempoAtuacao,
-                          BigDecimal rendaMensal, BigDecimal valorInvestimentos, String interesses) {
-        this.user = user;
-        this.ocupacao = ocupacao;
-        this.empresa = empresa;
-        this.tempoAtuacao = tempoAtuacao;
-        this.rendaMensal = rendaMensal;
-        this.valorInvestimentos = valorInvestimentos;
-        this.interesses = interesses;
-    }
-}
-package br.cinveste.model;
-
-import jakarta.persistence.*;
-import lombok.*;
-import java.math.BigDecimal;
-
-@Entity
-@Table(name = "projeto")
-@Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
-public class ProjectEntity {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Integer id;
-
-    @ManyToOne
-    @JoinColumn(name = "user_id", nullable = false)
-    private UserEntity user; // ligação com o usuário
-
-    @Column(nullable = false)
-    private String linkImagem;
-
-    @Column(nullable = false, length = 100)
-    private String nome;
-
-    @Column(nullable = false, length = 100)
-    private String area;
-
-    @Column(nullable = false, length = 500)
-    private String descricao;
-
-    @Column(nullable = false, length = 100)
-    private String orientador;
-
-    @Column(nullable = false, precision = 19, scale = 4)
-    private BigDecimal vpl; // Valor Presente Líquido
-
-    @Column(nullable = false, precision = 19, scale = 4)
-    private BigDecimal roi; // Retorno sobre Investimento
-
-    @Column(nullable = false, precision = 19, scale = 4)
-    private BigDecimal tir; // Taxa Interna de Retorno
-
-    @Column(nullable = false, precision = 19, scale = 4)
-    private BigDecimal payback;
-
-    @Column(nullable = false, precision = 19, scale = 4)
-    private BigDecimal paybackDescontado;
-
-    @Column(nullable = false, length = 100)
-    private String planilha; // Custos e despesas
-
-    @Column(nullable = false, length = 50)
-    private String periodo;
-
-    @Column(nullable = false, length = 100)
-    private String mercadoAlvo;
-
-    @Column(nullable = false, length = 1000)
-    private String fluxoCaixa; // Valor que vão entrar e sair do projeto.
-}
-package br.cinveste.model;
-
-import jakarta.persistence.*;
-import lombok.*;
-
-@Entity
-@Table(name = "equipe")
-@Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
-public class TeamEntity {
-
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "id_equipe")
-    private Integer idEquipe;
-
-    @OneToOne
-    @JoinColumn(name = "id_user", nullable = false, unique = true)
-    private UserEntity user;
-
-    @Column(length = 100)
-    private String logoUrl;
-
-    @Column(nullable = false, length = 100)
-    private String nome;
-
-    @Column(length = 255)
-    private String descricao;
-    
-
-}
-package br.cinveste.model;
-
-import jakarta.persistence.*;
-import java.time.LocalDate;
-import java.util.Collection;
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.userdetails.UserDetails;
-
-import br.cinveste.enums.UserType;
-import lombok.*;
-
-@Entity
-@Table(name = "usuario")
-@Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
-@Inheritance(strategy = InheritanceType.JOINED)
-public class UserEntity implements UserDetails {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "id_usuario")
-    private Integer id;
-    
-    @Column(nullable = false, length = 100)
-    private String nome;
-    
-    @Column(nullable = false, unique = true, length = 100)
-    private String email;
-    
-    @Column(length = 20)
-    private String telefone;
-    
-    @Column(name = "data_nascimento")
-    private LocalDate dataNascimento;
-    
-    @Column(length = 10)
-    private String cep;
-    
-    @Column(length = 2)
-    private String estado;
-    
-    @Column(length = 100)
-    private String municipio;
-    
-    @Column(length = 150)
-    private String rua;
-    
-    @Column(length = 10)
-    private String numero;
-    
-    @Column(length = 100)
-    private String complemento;
-    
-    @Column(nullable = false, length = 255)
-    private String senha;
-
-    @Enumerated(EnumType.STRING)
-    @Column(name = "tipo_usuario", nullable = false, length = 20)
-    private UserType tipoUsuario;
-    
-    @Override
-    public Collection<? extends GrantedAuthority> getAuthorities() {
-        return java.util.List.of(new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_USER"));
-    }
-
-    @Override
-    public String getPassword() {
-        return this.senha;
-    }
-
-    @Override
-    public String getUsername() {
-        return this.email;
-    }
-
-    @Override
-    public boolean isAccountNonExpired() { return true; }
-    @Override
-    public boolean isAccountNonLocked() { return true; }
-    @Override
-    public boolean isCredentialsNonExpired() { return true; }
-    @Override
-    public boolean isEnabled() { return true; }
-}
-package br.cinveste.record;
-
-public record AuthenticationDto(String email, String senha) {
-
-}
-package br.cinveste.record;
-import java.time.LocalDate;
-
-public record EntrepreneurRegisterDto(
-    Integer user_id,
-    String instituicao_ensino,
-    String curso,
-    String nivel_ensino,
-    LocalDate ano_expedicao,
-    LocalDate ano_conclusao
-) {}
-package br.cinveste.record;
-
-import java.math.BigDecimal;
-
-public record InvestorRegisterDto(
-    Integer user_id,
-    String ocupacao,
-    String empresa,
-    Integer tempo_atuacao,
-    BigDecimal renda_mensal,
-    BigDecimal valor_investimentos,
-    String interesses
-) {}
-package br.cinveste.record;
-
-public record LoginReponseDto(String token) {
-
-}
-package br.cinveste.record;
-
-import java.math.BigDecimal;
-
-public record ProjectDto(
-    String nome,
-    String area,
-    String descricao,
-    String orientador,
-    BigDecimal vpl,     // Valor Presente Líquido
-    BigDecimal roi,     // Retorno sobre Investimento
-    BigDecimal tir,     // Taxa Interna de Retorno
-    BigDecimal payback,
-    BigDecimal paybackDescontado,
-    String planilha,    // custos e despesas
-    String periodo,
-    String mercadoAlvo,
-    String linkImagem,
-    String fluxoCaixa // valores que vao entrar e sair do projeto.
-) {}
-package br.cinveste.record;
-import br.cinveste.enums.UserType;
-import java.time.LocalDate;
-
-public record RegisterDto(
-    String nome,
-    String email,
-    String telefone,
-    String senha,
-    LocalDate data_nascimento,
-    String cep,
-    String estado,
-    String rua,
-    String numero,
-    String municipio,
-    String complemento,
-    UserType typeUsuario,
-    InvestorRegisterDto investorRegisterDto,
-    EntrepreneurRegisterDto entrepreneurRegisterDto
-) {}
-package br.cinveste.record;
-
-public record TeamDto(
-    Integer user_id,
-    String logoUrl,
-    String nome,
-    String descricao
-    ) {}
-
-package br.cinveste.repository;
-
-import org.springframework.data.jpa.repository.JpaRepository;
-import br.cinveste.model.EntrepreneurEntity;
-
-public interface EntrepreneurRepository extends JpaRepository<EntrepreneurEntity, Integer> {
-
-}
-package br.cinveste.repository;
-
-import org.springframework.data.jpa.repository.JpaRepository;
-import br.cinveste.model.InvestorEntity;
-
-public interface InvestorRepository extends JpaRepository<InvestorEntity, Integer> {
-    
-}
-package br.cinveste.repository;
-
-import br.cinveste.model.ProjectEntity;
-import org.springframework.data.jpa.repository.JpaRepository;
-
-public interface ProjectRepository extends JpaRepository<ProjectEntity, Integer> {
-
-}
-package br.cinveste.repository;
-
-import org.springframework.data.jpa.repository.JpaRepository;
-
-import br.cinveste.model.TeamEntity;
-
-public interface TeamRepository extends JpaRepository<TeamEntity, Integer> {
-
-}
- package br.cinveste.repository;
-
-import java.util.Optional;
-
-import org.springframework.data.jpa.repository.JpaRepository;
 import br.cinveste.model.UserEntity;
+import br.cinveste.record.ProjectDto;
+import br.cinveste.response.ProjectResponseDto;
+import br.cinveste.service.ProjectService;
 import br.cinveste.enums.UserType;
-
-
-public interface UserRepository extends JpaRepository<UserEntity, Integer> {
-    UserEntity findByEmail(String email);
-
-    Optional<UserEntity> findByTipoUsuario(UserType tipoUsuario);
-
-}
-package br.cinveste.response;
-
-public record TeamResponseDto(
-    Integer id,
-    String nome,
-    String descricao,
-    String logoUrl,
-    UserResponseDto user
-) {
-
-}
-package br.cinveste.response;
-
-public record UserResponseDto(
-    Integer id,
-    String nome
-) {
-
-}
-package br.cinveste.service;
-
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UserDetailsService;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
-import org.springframework.stereotype.Service;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.*;
 
-import br.cinveste.repository.UserRepository;
-
-@Service
-public class AuthorizationService implements UserDetailsService {
-
-    @Autowired
-    private UserRepository userRepository;
-
-    @Override
-    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        UserDetails user = userRepository.findByEmail(username);
-        if (user == null) {
-            throw new UsernameNotFoundException("Usuário não encontrado: " + username);
-        }
-        return user;
-    }
-}
-package br.cinveste.service;
-
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
 import java.util.List;
 
-import br.cinveste.record.TeamDto;
-import br.cinveste.model.TeamEntity;
-import br.cinveste.model.UserEntity;
-import br.cinveste.repository.TeamRepository;
-import br.cinveste.repository.UserRepository;
-import br.cinveste.response.TeamResponseDto;
-import br.cinveste.response.UserResponseDto;
-
-@Service
-public class TeamService {
+@RestController
+@RequestMapping("/projects")
+public class ProjectController {
 
     @Autowired
-    private UserRepository userRepository;
+    private ProjectService projectService;
 
-    @Autowired
-    private TeamRepository teamRepository;
-
-    public TeamResponseDto createTeam(TeamDto teamDto) {
-        UserEntity user = userRepository.findById(teamDto.user_id())
-            .orElseThrow(() -> new RuntimeException("User not found"));
-
-        TeamEntity team = new TeamEntity();
-        team.setUser(user);
-        team.setLogoUrl(teamDto.logoUrl());
-        team.setNome(teamDto.nome());
-        team.setDescricao(teamDto.descricao());
-
-        TeamEntity saved = teamRepository.save(team);
-
-        // monta DTO de resposta
-        return new TeamResponseDto(
-            saved.getIdEquipe(),
-            saved.getNome(),
-            saved.getDescricao(),
-            saved.getLogoUrl(),
-            new UserResponseDto(user.getId(), user.getNome())
-        );
+    @PostMapping
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ProjectResponseDto> createProject(@RequestBody ProjectDto dto,
+                                                            @AuthenticationPrincipal UserEntity currentUser) {
+        if (currentUser.getTipoUsuario() != UserType.Empreendedor) {
+            return ResponseEntity.status(403).build();
+        }
+        return ResponseEntity.ok(projectService.createProject(dto, currentUser));
     }
 
-    public List<TeamResponseDto> listTeams() {
-        return teamRepository.findAll().stream()
-            .map(team -> new TeamResponseDto(
-                team.getIdEquipe(),
-                team.getNome(),
-                team.getDescricao(),
-                team.getLogoUrl(),
-                new UserResponseDto(
-                    team.getUser().getId(),
-                    team.getUser().getNome()
-                )
-            ))
-            .toList();
+    @GetMapping
+    public ResponseEntity<List<ProjectResponseDto>> listProjects() {
+        return ResponseEntity.ok(projectService.listProjects());
+    }
+
+    @GetMapping("/me")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<List<ProjectResponseDto>> listMyProjects(@AuthenticationPrincipal UserEntity currentUser) {
+        return ResponseEntity.ok(projectService.listProjectsByUser(currentUser));
     }
 }
 package br.cinveste.service;
@@ -692,6 +98,7 @@ import br.cinveste.model.InvestorEntity;
 import br.cinveste.record.AuthenticationDto;
 import br.cinveste.record.RegisterDto;
 import br.cinveste.repository.UserRepository;
+import br.cinveste.response.UserResponseDto;
 import br.cinveste.repository.EntrepreneurRepository;
 import br.cinveste.repository.InvestorRepository;
 import br.cinveste.webconfig.TokenService;
@@ -717,16 +124,23 @@ public class UserService {
     @Autowired
     private TokenService tokenService;
 
-    public UserEntity saveUser(UserEntity user) {
-        return userRepository.save(user);
+    public List<UserResponseDto> listUsers() {
+        return userRepository.findAll().stream()
+        .map(this::toResponseDto)
+        .toList();
     }
 
-    public List<UserEntity> listUsers() {
-        return userRepository.findAll();
+    public UserResponseDto getCurrentUser(UserEntity currentUser) {
+        return toResponseDto(currentUser);
     }
 
-    public Optional<UserEntity> getUserType(UserType tipoUsuario) {
-        return userRepository.findByTipoUsuario(tipoUsuario);
+    private UserResponseDto toResponseDto(UserEntity user) {
+        return new UserResponseDto(
+            user.getId(),
+            user.getNome(),
+            user.getEmail(),
+            user.getTipoUsuario().name()
+            );
     }
 
     public Optional<UserEntity> getUserById(Integer id) {
@@ -737,8 +151,6 @@ public class UserService {
         userRepository.deleteById(id);
     }
 
-
-
     public String login(AuthenticationDto data) {
         UsernamePasswordAuthenticationToken usernamePassword =
                 new UsernamePasswordAuthenticationToken(data.email(), data.senha());
@@ -748,10 +160,8 @@ public class UserService {
 
     @Transactional
     public UserEntity createUser(RegisterDto data) {
-        var emailExists = userRepository.findByEmail(data.email());
-
-        if (emailExists != null) {
-            throw new IllegalArgumentException("Email already registered.");
+        if (userRepository.findByEmail(data.email()).isPresent()) {
+            throw new IllegalArgumentException("Email já cadastrado.");
         }
 
         UserEntity user = new UserEntity(
@@ -770,199 +180,274 @@ public class UserService {
             data.typeUsuario()
         );
 
-    user = userRepository.save(user);
+        user = userRepository.save(user);
 
-    if (data.typeUsuario() == UserType.Investidor) {
-        InvestorEntity investor = new InvestorEntity(
-            null,
-            user,
-            data.investorRegisterDto().ocupacao(),
-            data.investorRegisterDto().empresa(),
-            data.investorRegisterDto().tempo_atuacao(),
-            data.investorRegisterDto().renda_mensal(),
-            data.investorRegisterDto().valor_investimentos(),
-            data.investorRegisterDto().interesses()
-        );
-        investorRepository.save(investor);
-    }
-
-    if (data.typeUsuario() == UserType.Empreendedor) {
-            EntrepreneurEntity entrepreneur = new EntrepreneurEntity(
-            null,
-            user,
-            data.entrepreneurRegisterDto().instituicao_ensino(),
-            data.entrepreneurRegisterDto().curso(),
-            data.entrepreneurRegisterDto().nivel_ensino(),
-            data.entrepreneurRegisterDto().ano_expedicao(),
-            data.entrepreneurRegisterDto().ano_conclusao()
-        );
-        entrepreneurRepository.save(entrepreneur);
-    }
-
-    return user;
-    }
-
-
-}
-package br.cinveste.webconfig;
-
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
-import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-
-@Configuration
-@EnableWebSecurity
-public class SecurityConfig {
-
-    @Autowired
-    private SecurityFilter securityFilter;
-
-    @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        return http
-                // Desabilitando CSRF, comum para APIs REST
-                .csrf(csrf -> csrf.disable())
-
-                // Configuração para não criar sessão - stateless
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-
-                // Controle de acesso das URLs
-                .authorizeHttpRequests(authz -> authz
-                        // Permite acesso sem autenticação aos endpoints públicos
-                        .requestMatchers(
-                            "/user/**",
-                            "/",          // se precisar liberar a raiz
-                            "/auth/**",       // se a rota /auth usada para info
-                            "/team/**"
-                            ).permitAll()
-
-                        // Qualquer outra requisição exige autenticação
-                        .anyRequest().authenticated())
-
-                // Registra o seu filtro de segurança: deve ser antes do filtro padrão de autenticação
-                .addFilterBefore(securityFilter, UsernamePasswordAuthenticationFilter.class)
-
-                .build();
-    }
-
-    // Bean para gerenciar autenticação via AuthenticationManager (necessário para login)
-    @Bean
-    public AuthenticationManager authenticationManager(AuthenticationConfiguration authenticationConfiguration)
-            throws Exception {
-        return authenticationConfiguration.getAuthenticationManager();
-    }
-
-    // Bean para codificador de senha bcrypt
-    @Bean
-    public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
-    }
-}
-package br.cinveste.webconfig;
-
-import jakarta.servlet.FilterChain;
-import jakarta.servlet.ServletException;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.stereotype.Component;
-import org.springframework.web.filter.OncePerRequestFilter;
-import br.cinveste.repository.UserRepository;
-import java.io.IOException;
-
-@Component
-public class SecurityFilter extends OncePerRequestFilter {
-
-    @Autowired
-    private TokenService tokenService;
-
-    @Autowired
-    private UserRepository userRepository;
-
-    @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
-            throws ServletException, IOException {
-        var token = this.recoverToken(request);
-        if (token != null) {
-            var email = tokenService.validateToken(token);
-            UserDetails user = userRepository.findByEmail(email);
-            if (user != null) {
-                var authentication = new UsernamePasswordAuthenticationToken(user, null, user.getAuthorities());
-                SecurityContextHolder.getContext().setAuthentication(authentication);
-            }
+        if (data.typeUsuario() == UserType.Investidor) {
+            InvestorEntity investor = new InvestorEntity(
+                null,
+                user,
+                data.investorRegisterDto().ocupacao(),
+                data.investorRegisterDto().empresa(),
+                data.investorRegisterDto().tempo_atuacao(),
+                data.investorRegisterDto().renda_mensal(),
+                data.investorRegisterDto().valor_investimentos(),
+                data.investorRegisterDto().interesses()
+            );
+            investorRepository.save(investor);
         }
-        filterChain.doFilter(request, response);
-    }
 
-    private String recoverToken(HttpServletRequest request) {
-        var authHeader = request.getHeader("Authorization");
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) return null;
-        return authHeader.replace("Bearer ", "");
+        if (data.typeUsuario() == UserType.Empreendedor) {
+            EntrepreneurEntity entrepreneur = new EntrepreneurEntity(
+                null,
+                user,
+                data.entrepreneurRegisterDto().instituicao_ensino(),
+                data.entrepreneurRegisterDto().curso(),
+                data.entrepreneurRegisterDto().nivel_ensino(),
+                data.entrepreneurRegisterDto().ano_expedicao(),
+                data.entrepreneurRegisterDto().ano_conclusao()
+            );
+            entrepreneurRepository.save(entrepreneur);
+        }
+
+        return user;
     }
 }
-package br.cinveste.webconfig;
+package br.cinveste.service;
 
-import com.auth0.jwt.JWT;
-import com.auth0.jwt.algorithms.Algorithm;
-import com.auth0.jwt.exceptions.JWTCreationException;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import br.cinveste.model.UserEntity;
-import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.ZoneOffset;
+import org.springframework.beans.factory.annotation.Autowired;
 
+import br.cinveste.record.TeamDto;
+import br.cinveste.model.TeamEntity;
+import br.cinveste.model.UserEntity;
+import br.cinveste.enums.UserType;
+import br.cinveste.repository.TeamRepository;
+import br.cinveste.response.TeamResponseDto;
+
+import java.util.List;
 
 @Service
-public class TokenService {
+public class TeamService {
 
-    @Value("${api.security.token.secret}")
-    private String secret;
+    @Autowired
+    private TeamRepository teamRepository;
 
-    public String generateToken(UserEntity user) {
-        try {
-            Algorithm algorithm = Algorithm.HMAC256(secret);
-            return JWT.create()
-                    .withIssuer("auth-api")
-                    .withSubject(user.getEmail())
-                    .withExpiresAt(genExpirationDate())
-                    .sign(algorithm);
-        } catch (JWTCreationException exception) {
-            throw new RuntimeException("Error while generating token", exception);
+    public TeamResponseDto createTeam(TeamDto teamDto, UserEntity currentUser) {
+        if (currentUser.getTipoUsuario() != UserType.Empreendedor) {
+            throw new RuntimeException("Apenas empreendedores podem criar equipes.");
         }
+
+        TeamEntity team = new TeamEntity();
+        team.setUser(currentUser);
+        team.setLogoUrl(teamDto.logoUrl());
+        team.setNome(teamDto.nome());
+        team.setDescricao(teamDto.descricao());
+
+        TeamEntity saved = teamRepository.save(team);
+
+        return new TeamResponseDto(
+            saved.getIdEquipe(),
+            saved.getNome(),
+            saved.getDescricao(),
+            saved.getLogoUrl(),
+            currentUser.getNome()
+        );
     }
 
-    public String validateToken(String token) {
-        try {
-            Algorithm algorithm = Algorithm.HMAC256(secret);
-            return JWT.require(algorithm)
-                    .withIssuer("auth-api")
-                    .build()
-                    .verify(token)
-                    .getSubject();
-        } catch (Exception e) {
-            return "";
-        }
-    }
-
-    private Instant genExpirationDate() {
-        return LocalDateTime.now().plusHours(2).toInstant(ZoneOffset.of("-03:00"));
+    public List<TeamResponseDto> listTeams() {
+        return teamRepository.findAll().stream()
+            .map(team -> new TeamResponseDto(
+                team.getIdEquipe(),
+                team.getNome(),
+                team.getDescricao(),
+                team.getLogoUrl(),
+                team.getUser().getNome()
+            ))
+            .toList();
     }
 }
+package br.cinveste.service;
 
+import org.springframework.stereotype.Service;
+import org.springframework.beans.factory.annotation.Autowired;
 
+import br.cinveste.record.ProjectDto;
+import br.cinveste.model.ProjectEntity;
+import br.cinveste.model.TeamEntity;
+import br.cinveste.model.UserEntity;
+import br.cinveste.enums.UserType;
+import br.cinveste.repository.ProjectRepository;
+import br.cinveste.repository.TeamRepository;
+import br.cinveste.response.ProjectResponseDto;
 
+import java.util.List;
+
+@Service
+public class ProjectService {
+
+    @Autowired
+    private ProjectRepository projectRepository;
+
+    @Autowired
+    private TeamRepository teamRepository;
+
+    public ProjectResponseDto createProject(ProjectDto projectDto, UserEntity currentUser) {
+        if (currentUser.getTipoUsuario() != UserType.Empreendedor) {
+            throw new RuntimeException("Apenas empreendedores podem criar projetos.");
+        }
+
+        TeamEntity team = teamRepository.findByUser(currentUser)
+                .orElseThrow(() -> new RuntimeException("Usuário não possui equipe"));
+
+        ProjectEntity project = new ProjectEntity();
+        project.setNome(projectDto.nome());
+        project.setArea(projectDto.area());
+        project.setDescricao(projectDto.descricao());
+        project.setOrientador(projectDto.orientador());
+        project.setVpl(projectDto.vpl());
+        project.setRoi(projectDto.roi());
+        project.setTir(projectDto.tir());
+        project.setPayback(projectDto.payback());
+        project.setPaybackDescontado(projectDto.paybackDescontado());
+        project.setPeriodo(projectDto.periodo());
+        project.setMercadoAlvo(projectDto.mercadoAlvo());
+        project.setTeam(team);
+
+        ProjectEntity saved = projectRepository.save(project);
+
+        return new ProjectResponseDto(
+            saved.getIdProjeto(),
+            saved.getNome(),
+            saved.getArea(),
+            saved.getDescricao(),
+            saved.getOrientador(),
+            saved.getVpl(),
+            saved.getRoi(),
+            saved.getTir(),
+            saved.getPayback(),
+            saved.getPaybackDescontado(),
+            saved.getPeriodo(),
+            saved.getMercadoAlvo(),
+            team.getNome()
+        );
+    }
+
+    public List<ProjectResponseDto> listProjects() {
+        return projectRepository.findAll().stream()
+            .map(p -> new ProjectResponseDto(
+                p.getIdProjeto(),
+                p.getNome(),
+                p.getArea(),
+                p.getDescricao(),
+                p.getOrientador(),
+                p.getVpl(),
+                p.getRoi(),
+                p.getTir(),
+                p.getPayback(),
+                p.getPaybackDescontado(),
+                p.getPeriodo(),
+                p.getMercadoAlvo(),
+                p.getTeam().getNome()
+            ))
+            .toList();
+    }
+
+    public List<ProjectResponseDto> listProjectsByUser(UserEntity user) {
+        return projectRepository.findAll().stream()
+            .filter(p -> p.getTeam().getUser().getId().equals(user.getId()))
+            .map(p -> new ProjectResponseDto(
+                p.getIdProjeto(),
+                p.getNome(),
+                p.getArea(),
+                p.getDescricao(),
+                p.getOrientador(),
+                p.getVpl(),
+                p.getRoi(),
+                p.getTir(),
+                p.getPayback(),
+                p.getPaybackDescontado(),
+                p.getPeriodo(),
+                p.getMercadoAlvo(),
+                p.getTeam().getNome()
+            ))
+            .toList();
+    }
+}
+package br.cinveste.record;
+
+public record TeamDto(
+    String logoUrl,
+    String nome,
+    String descricao
+) {}
+package br.cinveste.record;
+import br.cinveste.enums.UserType;
+import java.time.LocalDate;
+
+public record RegisterDto(
+    String nome,
+    String email,
+    String telefone,
+    String senha,
+    LocalDate data_nascimento,
+    String cep,
+    String estado,
+    String rua,
+    String numero,
+    String municipio,
+    String complemento,
+    UserType typeUsuario,
+    InvestorRegisterDto investorRegisterDto,
+    EntrepreneurRegisterDto entrepreneurRegisterDto
+) {}
+package br.cinveste.record;
+
+public record ProjectDto(
+    String nome,
+    String area,
+    String descricao,
+    String orientador,
+    Double vpl,
+    Double roi,
+    Double tir,
+    Double payback,
+    Double paybackDescontado,
+    String periodo,
+    String mercadoAlvo
+) {}
+package br.cinveste.response;
+
+public record UserResponseDto(
+    Integer id,
+    String nome,
+    String email,
+    String tipoUsuario
+) {}
+package br.cinveste.response;
+
+public record TeamResponseDto(
+    Integer idEquipe,
+    String nome,
+    String descricao,
+    String logoUrl,
+    String usuarioNome
+) {}
+package br.cinveste.response;
+
+public record ProjectResponseDto(
+    Integer idProjeto,
+    String nome,
+    String area,
+    String descricao,
+    String orientador,
+    Double vpl,
+    Double roi,
+    Double tir,
+    Double payback,
+    Double paybackDescontado,
+    String periodo,
+    String mercadoAlvo,
+    String equipeNome
+) {}
 
 

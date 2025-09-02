@@ -11,7 +11,6 @@ import lombok.*;
 @AllArgsConstructor
 public class TeamEntity {
 
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id_equipe")
@@ -29,6 +28,4 @@ public class TeamEntity {
 
     @Column(length = 255)
     private String descricao;
-    
-
 }

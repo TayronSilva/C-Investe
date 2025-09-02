@@ -1,7 +1,6 @@
 package br.cinveste.record;
 
 public record ProjectDto(
-    Integer idProjeto,
     String nome,
     String area,
     String descricao,

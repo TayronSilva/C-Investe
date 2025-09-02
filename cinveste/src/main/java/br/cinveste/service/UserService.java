@@ -1,7 +1,6 @@
 package br.cinveste.service;
 
 import java.util.List;
-import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -18,9 +17,9 @@ import br.cinveste.model.InvestorEntity;
 import br.cinveste.record.AuthenticationDto;
 import br.cinveste.record.RegisterDto;
 import br.cinveste.repository.UserRepository;
-import br.cinveste.response.UserResponseDto;
 import br.cinveste.repository.EntrepreneurRepository;
 import br.cinveste.repository.InvestorRepository;
+import br.cinveste.response.UserResponseDto;
 import br.cinveste.webconfig.TokenService;
 
 @Service
@@ -44,47 +43,11 @@ public class UserService {
     @Autowired
     private TokenService tokenService;
 
-    public UserEntity saveUser(UserEntity user) {
-        return userRepository.save(user);
-    }
-
-    public List<UserResponseDto> listUsers() {
-        return userRepository.findAll().stream()
-        .map(user -> new UserResponseDto(
-            user.getId(),
-            user.getNome(),
-            user.getEmail(),
-            user.getTipoUsuario().name()
-        ))
-        .toList();
-    }
-
-    public Optional<UserEntity> getUserType(UserType tipoUsuario) {
-        return userRepository.findByTipoUsuario(tipoUsuario);
-    }
-
-    public Optional<UserEntity> getUserById(Integer id) {
-        return userRepository.findById(id);
-    }
-
-    public void deleteUser(Integer id) {
-        userRepository.deleteById(id);
-    }
-
-
-
-    public String login(AuthenticationDto data) {
-        UsernamePasswordAuthenticationToken usernamePassword =
-                new UsernamePasswordAuthenticationToken(data.email(), data.senha());
-        Authentication auth = authenticationManager.authenticate(usernamePassword);
-        return tokenService.generateToken((UserEntity) auth.getPrincipal());
-    }
-
+    // 🔹 Cadastro de usuário com retorno DTO
     @Transactional
-    public UserEntity createUser(RegisterDto data) {
+    public UserResponseDto createUser(RegisterDto data) {
         var emailExists = userRepository.findByEmail(data.email());
-
-        if (emailExists != null) {
+        if (emailExists.isPresent()) {
             throw new IllegalArgumentException("Email already registered.");
         }
 
@@ -104,37 +67,70 @@ public class UserService {
             data.typeUsuario()
         );
 
-    user = userRepository.save(user);
+        user = userRepository.save(user);
 
-    if (data.typeUsuario() == UserType.Investidor) {
-        InvestorEntity investor = new InvestorEntity(
-            null,
-            user,
-            data.investorRegisterDto().ocupacao(),
-            data.investorRegisterDto().empresa(),
-            data.investorRegisterDto().tempo_atuacao(),
-            data.investorRegisterDto().renda_mensal(),
-            data.investorRegisterDto().valor_investimentos(),
-            data.investorRegisterDto().interesses()
-        );
-        investorRepository.save(investor);
-    }
+        if (data.typeUsuario() == UserType.Investidor) {
+            InvestorEntity investor = new InvestorEntity(
+                null,
+                user,
+                data.investorRegisterDto().ocupacao(),
+                data.investorRegisterDto().empresa(),
+                data.investorRegisterDto().tempo_atuacao(),
+                data.investorRegisterDto().renda_mensal(),
+                data.investorRegisterDto().valor_investimentos(),
+                data.investorRegisterDto().interesses()
+            );
+            investorRepository.save(investor);
+        }
 
-    if (data.typeUsuario() == UserType.Empreendedor) {
+        if (data.typeUsuario() == UserType.Empreendedor) {
             EntrepreneurEntity entrepreneur = new EntrepreneurEntity(
-            null,
-            user,
-            data.entrepreneurRegisterDto().instituicao_ensino(),
-            data.entrepreneurRegisterDto().curso(),
-            data.entrepreneurRegisterDto().nivel_ensino(),
-            data.entrepreneurRegisterDto().ano_expedicao(),
-            data.entrepreneurRegisterDto().ano_conclusao()
+                null,
+                user,
+                data.entrepreneurRegisterDto().instituicao_ensino(),
+                data.entrepreneurRegisterDto().curso(),
+                data.entrepreneurRegisterDto().nivel_ensino(),
+                data.entrepreneurRegisterDto().ano_expedicao(),
+                data.entrepreneurRegisterDto().ano_conclusao()
+            );
+            entrepreneurRepository.save(entrepreneur);
+        }
+
+        return new UserResponseDto(
+            user.getId(),
+            user.getNome(),
+            user.getEmail(),
+            user.getTipoUsuario().name()
         );
-        entrepreneurRepository.save(entrepreneur);
     }
 
-    return user;
+    // 🔹 Retorna todos os usuários como DTO
+    public List<UserResponseDto> listUsers() {
+        return userRepository.findAll().stream()
+            .map(user -> new UserResponseDto(
+                user.getId(),
+                user.getNome(),
+                user.getEmail(),
+                user.getTipoUsuario().name()
+            ))
+            .toList();
     }
 
+    // 🔹 Retorna dados do usuário logado
+    public UserResponseDto getCurrentUser(UserEntity currentUser) {
+        return new UserResponseDto(
+            currentUser.getId(),
+            currentUser.getNome(),
+            currentUser.getEmail(),
+            currentUser.getTipoUsuario().name()
+        );
+    }
 
+    // 🔹 Login e retorno de token
+    public String login(AuthenticationDto data) {
+        UsernamePasswordAuthenticationToken usernamePassword =
+                new UsernamePasswordAuthenticationToken(data.email(), data.senha());
+        Authentication auth = authenticationManager.authenticate(usernamePassword);
+        return tokenService.generateToken((UserEntity) auth.getPrincipal());
+    }
 }
