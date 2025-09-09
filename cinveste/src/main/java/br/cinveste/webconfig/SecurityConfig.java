@@ -18,25 +18,29 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 public class SecurityConfig {
 
     @Autowired
-    private SecurityFilter securityFilter; 
+    private SecurityFilter securityFilter;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
             .csrf(csrf -> csrf.disable())
-            // OAuth2 precisa de sessão (Spring Security armazena o principal durante o fluxo)
+
+            .cors(cors -> {})
+
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
+
+            // Autorização das rotas
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/").permitAll()
                 .requestMatchers("/auth/**", "/users/register", "/oauth/**").permitAll()
                 .requestMatchers("/teams/register", "/projects/register").authenticated()
                 .anyRequest().authenticated()
             )
-            // Habilita login OAuth2 (GitHub, Google, etc.)
+
             .oauth2Login(oauth2 -> oauth2
                 .defaultSuccessUrl("/oauth/github", true)
             )
-            // Filtro JWT antes do UsernamePasswordAuthenticationFilter
+
             .addFilterBefore(securityFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
@@ -48,6 +52,7 @@ public class SecurityConfig {
         return authenticationConfiguration.getAuthenticationManager();
     }
 
+    // Bean para criptografar senhas
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
