@@ -18,24 +18,25 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 public class SecurityConfig {
 
     @Autowired
-    private SecurityFilter securityFilter;
+    private SecurityFilter securityFilter; 
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
             .csrf(csrf -> csrf.disable())
-            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            // OAuth2 precisa de sessão (Spring Security armazena o principal durante o fluxo)
+            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
             .authorizeHttpRequests(auth -> auth
-                // rota raiz liberada
                 .requestMatchers("/").permitAll()
-                // login e cadastro liberados
-                .requestMatchers("/auth/**", "/users/register").permitAll()
-                // criação de equipe e projeto -> apenas autenticados (regra de empreendedor no Service)
+                .requestMatchers("/auth/**", "/users/register", "/oauth/**").permitAll()
                 .requestMatchers("/teams/register", "/projects/register").authenticated()
-                // demais endpoints -> autenticados
                 .anyRequest().authenticated()
             )
-            // adiciona o filtro de autenticação antes do UsernamePasswordAuthenticationFilter
+            // Habilita login OAuth2 (GitHub, Google, etc.)
+            .oauth2Login(oauth2 -> oauth2
+                .defaultSuccessUrl("/oauth/github", true)
+            )
+            // Filtro JWT antes do UsernamePasswordAuthenticationFilter
             .addFilterBefore(securityFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();

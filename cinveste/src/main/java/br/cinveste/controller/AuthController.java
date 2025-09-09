@@ -6,8 +6,6 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import br.cinveste.record.AuthenticationDto;
-//import br.cinveste.record.EntrepreneurRegisterDto;
-//import br.cinveste.record.InvestorRegisterDto;
 import br.cinveste.service.UserService;
 
 @RestController
