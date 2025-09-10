@@ -14,6 +14,6 @@ public class OauthController {
 
     @GetMapping("/github")
     public Map<String, Object> user(@AuthenticationPrincipal OAuth2User principal) {
-        return principal.getAttributes(); // retorna os dados do GitHub
+        return principal.getAttributes();
     }
 }

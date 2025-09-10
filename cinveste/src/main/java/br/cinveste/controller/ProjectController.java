@@ -19,7 +19,6 @@ public class ProjectController {
     @Autowired
     private ProjectService projectService;
 
-    // 🔒 Apenas empreendedores logados podem criar projetos
     @PostMapping("/register")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ProjectResponseDto> createProject(@RequestBody ProjectDto dto,
@@ -27,13 +26,11 @@ public class ProjectController {
         return ResponseEntity.ok(projectService.createProject(dto, currentUser));
     }
 
-    // 🔓 Lista todos os projetos
     @GetMapping
     public ResponseEntity<List<ProjectResponseDto>> listProjects() {
         return ResponseEntity.ok(projectService.listProjects());
     }
 
-    // 🔒 Lista projetos do usuário logado
     @GetMapping("/me")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<List<ProjectResponseDto>> listMyProjects(@AuthenticationPrincipal UserEntity currentUser) {

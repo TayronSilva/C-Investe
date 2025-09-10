@@ -43,7 +43,6 @@ public class UserService {
     @Autowired
     private TokenService tokenService;
 
-    // 🔹 Cadastro de usuário com retorno DTO
     @Transactional
     public UserResponseDto createUser(RegisterDto data) {
         var emailExists = userRepository.findByEmail(data.email());
@@ -104,7 +103,6 @@ public class UserService {
         );
     }
 
-    // 🔹 Retorna todos os usuários como DTO
     public List<UserResponseDto> listUsers() {
         return userRepository.findAll().stream()
             .map(user -> new UserResponseDto(
@@ -116,7 +114,6 @@ public class UserService {
             .toList();
     }
 
-    // 🔹 Retorna dados do usuário logado
     public UserResponseDto getCurrentUser(UserEntity currentUser) {
         return new UserResponseDto(
             currentUser.getId(),
@@ -126,7 +123,6 @@ public class UserService {
         );
     }
 
-    // 🔹 Login e retorno de token
     public String login(AuthenticationDto data) {
         UsernamePasswordAuthenticationToken usernamePassword =
                 new UsernamePasswordAuthenticationToken(data.email(), data.senha());

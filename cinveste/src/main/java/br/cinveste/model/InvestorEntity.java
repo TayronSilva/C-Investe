@@ -39,7 +39,6 @@ public class InvestorEntity {
     @Column(columnDefinition = "TEXT")
     private String interesses;
 
-    // Construtor customizado sem o id (id vem do user)
     public InvestorEntity(UserEntity user, String ocupacao, String empresa, Integer tempoAtuacao,
                           BigDecimal rendaMensal, BigDecimal valorInvestimentos, String interesses) {
         this.user = user;

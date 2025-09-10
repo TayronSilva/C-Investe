@@ -37,7 +37,6 @@ public class EntrepreneurEntity {
     @Column(name = "ano_conclusao", nullable = false)
     private LocalDate anoConclusao;
 
-    // Construtor customizado sem o id (id vem do user)
     public EntrepreneurEntity(UserEntity user, String instituicaoEnsino, String curso, String nivelEnsino,
                               LocalDate anoExpedicao, LocalDate anoConclusao) {
         this.user = user;

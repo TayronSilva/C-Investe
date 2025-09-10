@@ -17,13 +17,11 @@ public class UserController {
     @Autowired
     private UserService userService;
 
-    // ➕ Cadastrar usuário
     @PostMapping("/register")
     public ResponseEntity<UserResponseDto> register(@RequestBody RegisterDto data) {
         return ResponseEntity.ok(userService.createUser(data));
     }
 
-    // 🔒 Dados do usuário logado
     @GetMapping("/me")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<UserResponseDto> getCurrentUser(@AuthenticationPrincipal UserEntity currentUser) {

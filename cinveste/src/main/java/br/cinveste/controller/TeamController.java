@@ -15,11 +15,9 @@ import java.util.List;
 @RestController
 @RequestMapping("/teams")
 public class TeamController {
-///teams/register
     @Autowired
     private TeamService teamService;
 
-    // 🔒 Apenas empreendedores logados podem criar equipes
     @PostMapping("/register")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<TeamResponseDto> createTeam(@RequestBody TeamDto dto,
@@ -27,7 +25,6 @@ public class TeamController {
         return ResponseEntity.ok(teamService.createTeam(dto, currentUser));
     }
 
-    // 🔓 Qualquer um pode listar equipes
     @GetMapping
     public ResponseEntity<List<TeamResponseDto>> listTeams() {
         return ResponseEntity.ok(teamService.listTeams());
